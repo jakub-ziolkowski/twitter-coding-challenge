@@ -1,0 +1,12 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+logging:
+  level:
+    root: info
+com:
+  hsbc:
+    twitter:
+      config:
+        max_post_length: 140
