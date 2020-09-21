@@ -2,10 +2,14 @@ package com.hsbc.twitter.api;
 
 import com.hsbc.twitter.api.dto.TweetDTO;
 import com.hsbc.twitter.api.dto.UserDTO;
+import com.hsbc.twitter.domain.TwitterService;
 import com.hsbc.twitter.domain.tweet.boundary.TweetsRepository;
 import com.hsbc.twitter.domain.tweet.entity.Tweet;
+import com.hsbc.twitter.domain.tweet.exceptions.TweetTooLongException;
 import com.hsbc.twitter.domain.user.boundary.UsersRepository;
 import com.hsbc.twitter.domain.user.entity.User;
+import com.hsbc.twitter.domain.user.exceptions.FollowingException;
+import com.hsbc.twitter.domain.user.exceptions.UserNotFoundException;
 import io.swagger.annotations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,14 +28,8 @@ public class TwitterRestController {
 
     private static final Logger log = LoggerFactory.getLogger(TwitterRestController.class);
 
-    @Value("${com.hsbc.twitter.config.max_post_length}")
-    private int MAX_POST_LENGTH;
-
     @Autowired
-    private TweetsRepository tweetsRepository;
-
-    @Autowired
-    private UsersRepository usersRepository;
+    public TwitterService twitterService;
 
     @ApiOperation(
             value = "Creates a new Tweet on behalf of the User",
@@ -43,20 +41,17 @@ public class TwitterRestController {
             @ApiResponse(code = 400, message = "There was a problem creating a Tweet - please follow exception status for details")
     })
     @ResponseStatus(HttpStatus.CREATED)
-    @RequestMapping(value = "/{login}/tweet", method = RequestMethod.PUT, produces = "application/json")
+    @RequestMapping(value = "/{login}/tweet", method = RequestMethod.PUT, consumes = "text/html", produces = "application/json")
     public @ResponseBody
     TweetDTO tweet(
             @ApiParam(value = "Login of Twitter User", required = true) @PathVariable("login") String login,
-            @ApiParam(value = "Tweet message", required = true) @RequestBody TwitterMessage body
+            @ApiParam(value = "Tweet message", required = true) @RequestBody String body
     ) {
-        if (body.getMessage().length() > MAX_POST_LENGTH) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "The message length has exceeded the maximum size limit of " + MAX_POST_LENGTH + " characters");
+        try {
+            return twitterService.createTweet(login, body);
+        } catch (TweetTooLongException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
-
-        Tweet tweet = tweetsRepository.createTweet(getOrCreateNewUser(login), body.getMessage());
-
-        return TweetDTO.toDTO(tweet);
     }
 
     @ApiOperation(
@@ -73,10 +68,11 @@ public class TwitterRestController {
     List<TweetDTO> showUserWall(
             @ApiParam(value = "Login of Twitter User", required = true) @PathVariable("login") String login
     ) {
-        return tweetsRepository.getUserWall(getUser(login))
-                .stream()
-                .map(TweetDTO::toDTO)
-                .collect(Collectors.toList());
+        try {
+            return twitterService.getUserWall(login);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @ApiOperation(
@@ -93,15 +89,11 @@ public class TwitterRestController {
             @ApiParam(value = "Login of Twitter User", required = true) @PathVariable("login") String login,
             @ApiParam(value = "Login of Twitter User to be followed", required = true) @PathVariable("another") String another
     ) {
-        User user = getUser(login);
-        User userToFollow = getUser(another);
-
-        if (user.equals(userToFollow))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cant follow yourself");
-
-        user.follow(userToFollow);
-
-        return getUsersFollowed(login);
+        try {
+            return twitterService.followUser(login, another);
+        } catch (UserNotFoundException | FollowingException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @ApiOperation(
@@ -117,7 +109,11 @@ public class TwitterRestController {
     List<UserDTO> followedList(
             @ApiParam(value = "Login of Twitter User", required = true) @PathVariable("login") String login
     ) {
-        return getUsersFollowed(login);
+        try {
+            return twitterService.getFollowing(login);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @ApiOperation(
@@ -133,26 +129,11 @@ public class TwitterRestController {
     List<TweetDTO> showUserTimeline(
             @ApiParam(value = "Login of Twitter User", required = true) @PathVariable("login") String login
     ) {
-        return tweetsRepository.getUserTimeline(getUser(login))
-                .stream()
-                .map(TweetDTO::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    private List<UserDTO> getUsersFollowed(String login) {
-        return getUser(login).getFollowed().stream()
-                .map(UserDTO::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    private User getUser(String login) {
-        return usersRepository.getUser(login)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to find User with login: ".concat(login)));
-    }
-
-    private User getOrCreateNewUser(String login) {
-        return usersRepository.getUser(login)
-                .orElseGet(() -> usersRepository.createUser(login));
+        try {
+            return twitterService.getUserTimeline(login);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
 }
