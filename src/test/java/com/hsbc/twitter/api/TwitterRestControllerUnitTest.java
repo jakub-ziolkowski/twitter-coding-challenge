@@ -41,7 +41,7 @@ class TwitterRestControllerUnitTest {
     }
     @Test
     void test_Tweet_And_User_Should_Be_Created_In_Repository() {
-        TweetDTO tweet = twitterRestController.tweet("TESTER", new TwitterMessage("Valid message for test"));
+        TweetDTO tweet = twitterRestController.tweet("TESTER", "Valid message for test");
 
         Optional<Tweet> created_tweet = tweetsRepository.getTweet(tweet.getId());
         assertTrue(created_tweet.isPresent());
@@ -51,12 +51,10 @@ class TwitterRestControllerUnitTest {
     }
 
     @Test()
-    void test_Tweet_And_User_Should_NOT_Be_Created_In_Repository_And_Exception_Should_Be_Thrown() {
+    void test_Tweet_Should_NOT_Be_Created_In_Repository_And_Exception_Should_Be_Thrown() {
         Exception e = assertThrows(ResponseStatusException.class, () ->
-                twitterRestController.tweet("TESTER", new TwitterMessage(RandomStringUtils.randomAlphabetic(141)))
+                twitterRestController.tweet("TESTER", RandomStringUtils.randomAlphabetic(141))
         );
-
-        assertFalse(usersRepository.getUser("TESTER").isPresent());
 
         String expectedMessage = "400 BAD_REQUEST \"The message length has exceeded the maximum size limit of 140 characters\"";
         String actualMessage = e.getMessage();
@@ -66,8 +64,8 @@ class TwitterRestControllerUnitTest {
 
     @Test
     void test_User_Should_Be_Able_To_Follow_Another_User() {
-        twitterRestController.tweet("TESTER", new TwitterMessage("Valid message for test"));
-        twitterRestController.tweet("DEVELOPER", new TwitterMessage("Another valid message for test"));
+        twitterRestController.tweet("TESTER", "Valid message for test");
+        twitterRestController.tweet("DEVELOPER", "Another valid message for test");
 
         List<UserDTO> followed = twitterRestController.follow("TESTER", "DEVELOPER");
 
@@ -77,7 +75,7 @@ class TwitterRestControllerUnitTest {
 
     @Test
     void test_User_Should_NOT_Be_Able_To_Follow_Non_Existent_User() {
-        twitterRestController.tweet("TESTER", new TwitterMessage("Valid message for test"));
+        twitterRestController.tweet("TESTER", "Valid message for test");
 
         Exception e = assertThrows(ResponseStatusException.class, () ->
                 twitterRestController.follow("TESTER", "NON_EXISTENT_USER")
@@ -91,9 +89,9 @@ class TwitterRestControllerUnitTest {
 
     @Test
     void test_User_Should_Be_Able_To_See_Followed_Users() {
-        twitterRestController.tweet("TESTER", new TwitterMessage("Valid message for test"));
-        twitterRestController.tweet("DEVELOPER", new TwitterMessage("Another valid message for test"));
-        twitterRestController.tweet("ADMIN", new TwitterMessage("Yet another valid message for test"));
+        twitterRestController.tweet("TESTER", "Valid message for test");
+        twitterRestController.tweet("DEVELOPER", "Another valid message for test");
+        twitterRestController.tweet("ADMIN", "Yet another valid message for test");
 
         twitterRestController.follow("TESTER", "DEVELOPER");
         twitterRestController.follow("TESTER", "ADMIN");
@@ -111,7 +109,7 @@ class TwitterRestControllerUnitTest {
 
     @Test()
     void test_User_Should_NOT_Be_Able_To_Follow_Himself_And_Exception_Should_Be_Thrown() {
-        twitterRestController.tweet("TESTER", new TwitterMessage("Valid message for test"));
+        twitterRestController.tweet("TESTER", "Valid message for test");
         Exception e = assertThrows(ResponseStatusException.class, () ->
                 twitterRestController.follow("TESTER", "TESTER")
         );
@@ -124,9 +122,9 @@ class TwitterRestControllerUnitTest {
 
     @Test()
     void test_User_Should_Be_Able_To_See_His_Wall_Posts_Ordered_By_Creation_Date_Descending(){
-        twitterRestController.tweet("TESTER", new TwitterMessage("Valid message for test"));
-        twitterRestController.tweet("TESTER", new TwitterMessage("Another valid message for test"));
-        twitterRestController.tweet("TESTER", new TwitterMessage("Yet another valid message for test"));
+        twitterRestController.tweet("TESTER", "Valid message for test");
+        twitterRestController.tweet("TESTER", "Another valid message for test");
+        twitterRestController.tweet("TESTER", "Yet another valid message for test");
 
         Optional<User> tester = usersRepository.getUser("TESTER");
         List<Tweet> userWall = tweetsRepository.getUserWall(tester.get());
@@ -144,11 +142,11 @@ class TwitterRestControllerUnitTest {
 
     @Test
     void test_User_Should_Be_Able_To_See_His_Timeline_Ordered_By_Creation_Date_Descending(){
-        twitterRestController.tweet("TESTER", new TwitterMessage("Valid message for test"));
-        twitterRestController.tweet("ADMIN", new TwitterMessage("Another valid message for test"));
-        twitterRestController.tweet("ADMIN", new TwitterMessage("Yet yey yet another valid message for test"));
-        twitterRestController.tweet("DEVELOPER", new TwitterMessage("Yet another valid message for test"));
-        twitterRestController.tweet("ADMIN", new TwitterMessage("Yet yet another valid message for test"));
+        twitterRestController.tweet("TESTER", "Valid message for test");
+        twitterRestController.tweet("ADMIN", "Another valid message for test");
+        twitterRestController.tweet("ADMIN", "Yet yey yet another valid message for test");
+        twitterRestController.tweet("DEVELOPER", "Yet another valid message for test");
+        twitterRestController.tweet("ADMIN", "Yet yet another valid message for test");
 
         twitterRestController.follow("TESTER", "ADMIN");
         twitterRestController.follow("TESTER", "DEVELOPER");

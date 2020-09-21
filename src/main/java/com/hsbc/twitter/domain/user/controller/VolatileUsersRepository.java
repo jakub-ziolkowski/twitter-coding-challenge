@@ -4,7 +4,9 @@ import com.hsbc.twitter.domain.user.boundary.UsersRepository;
 import com.hsbc.twitter.domain.user.entity.User;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Repository;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
 import java.util.Optional;
